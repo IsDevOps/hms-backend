@@ -49,6 +49,9 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: [self-hosted, Linux, X64, hms-backend ]
+    permissions:
+      contents: read
+      packages: read
     
     steps:
       - name: Checkout repository
@@ -63,4 +66,4 @@ jobs:
       - name: Deploy to Swarm
         run: |
           export IMAGE_NAME=ghcr.io/${{ github.repository }}:latest
-          docker stack deploy -c docker-compose.yml ${{ env.STACK_NAME }}
+          docker stack deploy --with-registry-auth -c docker-compose.yml ${{ env.STACK_NAME }}
