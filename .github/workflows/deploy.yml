@@ -48,7 +48,7 @@ jobs:
 
   deploy:
     needs: build-and-push
-    runs-on: self-hosted
+    runs-on: [self-hosted, Linux, X64, hms-backend ]
     
     steps:
       - name: Checkout repository
