@@ -41,11 +41,18 @@ jobs:
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
@@ -73,3 +80,22 @@ jobs:
         run: |
           export IMAGE_NAME=ghcr.io/${{ env.IMAGE_NAME }}:latest
           docker stack deploy --with-registry-auth -c docker-compose.yml ${{ env.STACK_NAME }}
+      
+      - name: Verify Deployment
+        run: |
+          echo "Waiting for service to converge..."
+          sleep 20
+          SERVICE_ID=$(docker service inspect --format="{{.ID}}" ${{ env.STACK_NAME }}_${{ env.SERVICE_NAME }})
+          
+          # Check if service is running
+          REPLICAS=$(docker service inspect --format="{{.Spec.Mode.Replicated.Replicas}}" $SERVICE_ID)
+          RUNNING=$(docker service ps --filter "desired-state=running" --format "{{.ID}}" $SERVICE_ID | wc -l)
+          
+          if [ "$RUNNING" -lt "$REPLICAS" ]; then
+            echo "Service failed to start. Showing logs:"
+            docker service ps --no-trunc $SERVICE_ID
+            docker service logs --tail 50 $SERVICE_ID
+            exit 1
+          else
+            echo "Service deployed successfully ($RUNNING/$REPLICAS replicas running)."
+          fi
