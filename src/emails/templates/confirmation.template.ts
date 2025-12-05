@@ -1,10 +1,10 @@
 export type ConfirmationTemplateParams = {
-  guestName: string;
-  bookingId: string;
-  roomType: string;
-  checkInDate: string;
-  checkOutDate: string;
-  checkInLink: string;
+    guestName: string;
+    bookingId: string;
+    roomType: string;
+    checkInDate: string;
+    checkOutDate: string;
+    checkInLink: string;
 };
 
 
@@ -16,7 +16,7 @@ export const confirmationTemplate = ({
     checkOutDate,
     checkInLink,
 }: ConfirmationTemplateParams) => {
-  return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
@@ -77,15 +77,7 @@ export const confirmationTemplate = ({
 
             <!-- Hero Image (Optional) -->
             <tr>
-    <td align="center" style="padding: 0; margin: 0; font-size: 0; line-height: 0;">
-        <img 
-            src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80" 
-            alt="Luxury Room" 
-            width="600"
-            height="200"
-            style="display: block; width: 100%; max-width: 600px; height: auto; object-fit: cover; border: 0;"
-        >
-    </td>
+        <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&amp;auto=format&amp;fit=crop&amp;w=600&amp;h=200&amp;q=80" alt="Luxury Room" width="600" height="200" style="display: block; width: 100%; border: 0;">
 </tr>
 
             <!-- Main Content -->
