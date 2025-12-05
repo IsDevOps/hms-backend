@@ -46,6 +46,9 @@ export class Booking {
   @Column({ nullable: true })
   qrCodeSecret: string; // The string the Frontend converts to a QR image
 
+  @Column({ nullable: true }) // Nullable in case generation fails, or for old records
+  qrCodeUrl: string; // The path to the image (e.g., "/uploads/qrcodes/booking-123.png")
+
   // --- RELATIONS ---
   @ManyToOne(() => User, (user) => user.bookings, { eager: true }) // eager: true loads user data automatically
   guest: User;

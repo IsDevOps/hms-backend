@@ -33,11 +33,12 @@
 //   }
 // }
 
-import { Controller, Get, Post, Body, Patch, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query } from '@nestjs/common';
 import { ServiceRequestsService } from './service-requests.service';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { RequestStatus } from './entities/service-request.entity';
+import { RequestStatus, ServiceType } from './entities/service-request.entity';
+import { UpdateServiceRequestDto, UpdateServiceStatusRequestDto } from './dto/update-service-request.dto';
 
 @ApiTags('Service Requests')
 @Controller('service-requests')
@@ -62,17 +63,22 @@ export class ServiceRequestsController {
   @ApiOperation({
     summary: 'Get all active requests (For Admin Dashboard List)',
   })
-  findAll() {
-    return this.serviceRequestsService.findAll();
+  @Get()
+  findAll(@Query('type') type?: ServiceType) {
+    return this.serviceRequestsService.findAll(type);
   }
 
   @Patch(':id/status')
   @ApiOperation({
     summary: 'Admin updates status (Triggers WebSocket update to Guest)',
   })
-  updateStatus(@Param('id') id: string, @Body('status') status: RequestStatus) {
-    return this.serviceRequestsService.updateStatus(id, status);
+  updateStatus(
+    @Param('id') id: string,
+    @Body() updateServiceStatusRequestDto: UpdateServiceStatusRequestDto,
+  ) {
+    return this.serviceRequestsService.updateStatus(
+      id,
+      updateServiceStatusRequestDto.status,
+    );
   }
-
- 
 }

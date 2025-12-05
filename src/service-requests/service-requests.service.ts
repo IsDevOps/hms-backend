@@ -74,7 +74,7 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ServiceRequest, Priority, RequestStatus } from './entities/service-request.entity';
+import { ServiceRequest, Priority, RequestStatus, ServiceType } from './entities/service-request.entity';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { AiService } from '../ai/ai.service';
 import { EventsGateway } from '../events/events.gateway';
@@ -156,12 +156,12 @@ export class ServiceRequestsService {
     };
   }
 
-  async findAll() {
-    return this.reqRepo.find({
-      relations: ['booking', 'booking.room'],
-      order: { createdAt: 'DESC' },
-    });
-  }
+  // async findAll() {
+  //   return this.reqRepo.find({
+  //     relations: ['booking', 'booking.room'],
+  //     order: { createdAt: 'DESC' },
+  //   });
+  // }
 
   // async updateStatus(id: string, status: RequestStatus) {
   //   const request = await this.reqRepo.findOne({
@@ -198,17 +198,14 @@ export class ServiceRequestsService {
   //   }
   // }
 
-
-  
-
   // 👇 NEW METHOD 👇
   async updateStatus(id: string, status: RequestStatus) {
     // 1. Find the Request (and load the Booking to get the Guest's ID)
-    const request = await this.reqRepo.findOne({ 
+    const request = await this.reqRepo.findOne({
       where: { id },
-      relations: ['booking'] 
+      relations: ['booking'],
     });
-    
+
     if (!request) {
       throw new NotFoundException(`Service Request ${id} not found`);
     }
@@ -227,34 +224,35 @@ export class ServiceRequestsService {
       requestId: request.id,
       newStatus: status,
       message: message,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     this.logger.log(`📢 Emitted '${eventName}' -> Status: ${status}`);
 
-    return { 
-      success: true, 
-      status: status, 
-      message: message 
+    return {
+      success: true,
+      status: status,
+      message: message,
     };
   }
 
   // Helper to give friendly messages to the guest
   private getStatusMessage(status: RequestStatus): string {
     switch (status) {
-      case RequestStatus.RECEIVED: return 'We have received your request.';
-      case RequestStatus.IN_PROGRESS: return 'Staff is working on your request.';
-      case RequestStatus.ON_WAY: return 'Staff is on the way to your room.';
-      case RequestStatus.COMPLETED: return 'Service completed. Have a great stay!';
-      case RequestStatus.CANCELLED: return 'Request was cancelled.';
-      default: return 'Status updated.';
+      case RequestStatus.RECEIVED:
+        return 'We have received your request.';
+      case RequestStatus.IN_PROGRESS:
+        return 'Staff is working on your request.';
+      case RequestStatus.ON_WAY:
+        return 'Staff is on the way to your room.';
+      case RequestStatus.COMPLETED:
+        return 'Service completed. Have a great stay!';
+      case RequestStatus.CANCELLED:
+        return 'Request was cancelled.';
+      default:
+        return 'Status updated.';
     }
   }
-
-
-
-
-
 
   async getRecommendation(bookingId: string) {
     // 1. Get History (Mocked logic for Hackathon)
@@ -288,5 +286,19 @@ export class ServiceRequestsService {
         reason: 'Unwind after a long day.',
       };
     return { suggestion: 'Club Sandwich', reason: 'Perfect for lunch.' };
+  }
+
+  async findAll(type?: ServiceType) {
+    const queryOptions: any = {
+      relations: ['booking', 'booking.room', 'booking.guest'], // Added guest so you see who asked
+      order: { createdAt: 'DESC' },
+    };
+
+    // If a type is provided (and it's not empty/null), add the WHERE clause
+    if (type) {
+      queryOptions.where = { type: type };
+    }
+
+    return this.reqRepo.find(queryOptions);
   }
 }

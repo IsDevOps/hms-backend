@@ -49,6 +49,7 @@ export class CreateServiceRequestDto {
   @ApiProperty({
     description: 'Schedule for later (ISO Date)',
     required: false,
+    example: '2024-12-31T15:00:00.000Z',
   })
   @IsDateString()
   @IsOptional()
