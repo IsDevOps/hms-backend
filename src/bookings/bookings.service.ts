@@ -104,4 +104,59 @@ export class BookingsService {
       order: { createdAt: 'DESC' },
     });
   }
+
+  // ... inside BookingsService class ...
+
+  // SPECIAL SEED FUNCTION (For Hackathon Data Injection)
+  async seed(seedData: any[]) {
+    const results: Booking[] = [];
+    for (const item of seedData) {
+      try {
+        // 1. Find Room by Number (e.g., "101") instead of UUID
+        const room = await this.roomRepo.findOne({
+          where: { number: item.roomNumber },
+        });
+        if (!room) {
+          console.warn(
+            `⚠️ Skipping seed item: Room ${item.roomNumber} not found.`,
+          );
+          continue;
+        }
+
+        // 2. Find or Create User
+        let user = await this.userRepo.findOne({
+          where: { email: item.guestEmail },
+        });
+        if (!user) {
+          user = this.userRepo.create({
+            email: item.guestEmail,
+            name: item.guestName,
+            role: UserRole.GUEST,
+          });
+          await this.userRepo.save(user);
+        }
+
+        // 3. Create the Booking
+        const booking = this.bookingRepo.create({
+          checkInDate: item.checkInDate,
+          checkOutDate: item.checkOutDate,
+          status: item.status || BookingStatus.CONFIRMED,
+          fraudScore: item.fraudScore || 0,
+          fraudReason: item.fraudReason || null,
+          guest: user,
+          room: room,
+          qrCodeSecret: `SEED-KEY-${Math.random().toString(36).substring(7).toUpperCase()}`,
+        });
+
+        const saved = await this.bookingRepo.save(booking);
+        if (!saved)
+          throw new BadRequestException('Failed to save seeded booking');
+        results.push(saved);
+      } catch (e) {
+        console.error('Failed to seed booking:', e);
+      }
+    }
+
+    return { count: results.length, seeded: results };
+  }
 }

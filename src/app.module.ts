@@ -16,6 +16,7 @@ import { ServiceRequest } from './service-requests/entities/service-request.enti
 import { AiModule } from './ai/ai.module';
 import { EventsModule } from './events/events.module';
 import { AdminModule } from './admin/admin.module';
+import { SeedingModule } from './seeding/seeding.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AdminModule } from './admin/admin.module';
     AiModule,
     EventsModule,
     AdminModule,
+    SeedingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

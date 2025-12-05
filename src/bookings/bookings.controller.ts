@@ -60,4 +60,28 @@ export class BookingsController {
   findAll() {
     return this.bookingsService.findAll();
   }
+
+
+  @Post('seed')
+  @ApiOperation({ summary: 'Bulk Create Bookings from Helper JSON' })
+  @ApiBody({
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          roomNumber: { type: 'string', example: '101' },
+          guestName: { type: 'string', example: 'Alice Seed' },
+          guestEmail: { type: 'string', example: 'alice@test.com' },
+          checkInDate: { type: 'string', example: '2023-12-01' },
+          checkOutDate: { type: 'string', example: '2023-12-05' },
+          status: { type: 'string', example: 'CHECKED_OUT' },
+          fraudScore: { type: 'number', example: 10 },
+        },
+      },
+    },
+  })
+  seed(@Body() seedData: any[]) {
+    return this.bookingsService.seed(seedData);
+  }
 }

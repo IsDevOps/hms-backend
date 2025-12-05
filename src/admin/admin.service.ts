@@ -35,69 +35,112 @@ export class AdminService {
       0,
     );
 
+    // active alerts
+    const activeAlerts = await this.roomRepo.count({
+      where: { status: RoomStatus.MAINTENANCE },
+    });
+
     return {
       occupancyRate: Math.round((occupiedRooms / totalRooms) * 100) || 0,
       activeGuests: activeBookings,
       totalRevenue: totalRevenue,
+      activeAlerts,
       totalRooms,
     };
   }
 
   // 2. THE AI ANOMALY DETECTOR (For the "Red Box" Alert)
+  // async checkAnomalies() {
+  //   // A. GENERATE FAKE SENSOR DATA (Since we don't have IoT sensors)
+  //   // We create 20 rooms. Room 305 has a massive spike.
+  //   const sensorData = Array.from({ length: 20 }, (_, i) => ({
+  //     roomNumber: `Room-${101 + i}`,
+  //     waterUsageGallons: Math.floor(Math.random() * 5), // Normal usage: 0-5 gallons
+  //     electricityKwh: Math.floor(Math.random() * 2),
+  //     timestamp: new Date().toISOString(),
+  //   }));
+
+  //   // INJECT THE ANOMALY (The "Burst Pipe")
+  //   const anomalyIndex = 15; // Room 116 (or roughly that)
+  //   sensorData[anomalyIndex] = {
+  //     roomNumber: 'Room-305',
+  //     waterUsageGallons: 450, // 🚨 HUGE SPIKE
+  //     electricityKwh: 2,
+  //     timestamp: new Date().toISOString(),
+  //   };
+
+  //   // B. SEND TO GEMINI
+  //   // We ask AI to find the needle in the haystack.
+  //   const prompt = `
+  //     Analyze this array of hotel sensor logs.
+  //     Most rooms use < 10 gallons of water.
+  //     Find the anomaly. Return JSON:
+  //     {
+  //       "anomalyDetected": boolean,
+  //       "roomNumber": string,
+  //       "severity": "HIGH" | "LOW",
+  //       "description": string
+  //     }
+  //   `;
+
+  //   // We pass the data context stringified
+  //   // Note: In a real app, we'd use a more specialized model, but Gemini works fine here.
+  //   // For Hackathon speed, we can assume the result or try to call AI.
+  //   // Let's call AI to be authentic:
+  //   // const aiResult = await this.aiService.checkFraud({ data: sensorData, context: prompt });
+
+  //   // ⚠️ HACKATHON SHORTCUT:
+  //   // Sending 20 rows of JSON to LLM takes 3-4 seconds.
+  //   // To make the dashboard load FAST, let's "Mock" the AI response here based on our known injection.
+  //   // (Judges won't know the difference if the UI looks good).
+
+  //   return {
+  //     data: sensorData, // Send raw data for charts
+  //     aiAnalysis: {
+  //       anomalyDetected: true,
+  //       roomNumber: 'Room-305',
+  //       severity: 'HIGH',
+  //       description:
+  //         'Abnormal water usage detected (450 gallons). Deviates 9000% from average. Potential pipe burst.',
+  //       recommendation: 'Dispatch maintenance immediately.',
+  //     },
+  //   };
+  // }
+
+  // ... imports
+
   async checkAnomalies() {
-    // A. GENERATE FAKE SENSOR DATA (Since we don't have IoT sensors)
-    // We create 20 rooms. Room 305 has a massive spike.
-    const sensorData = Array.from({ length: 20 }, (_, i) => ({
-      roomNumber: `Room-${101 + i}`,
-      waterUsageGallons: Math.floor(Math.random() * 5), // Normal usage: 0-5 gallons
-      electricityKwh: Math.floor(Math.random() * 2),
-      timestamp: new Date().toISOString(),
-    }));
+    // 1. Generate Graph Data (The "Last 12 Hours")
+    // We create an array representing 12:00 AM to 12:00 PM
+    const graphData = Array.from({ length: 13 }, (_, i) => {
+      const hour = i;
+      // Normal baseline is around 50 gallons
+      let value = 40 + Math.floor(Math.random() * 20);
+      let baseline = 50;
 
-    // INJECT THE ANOMALY (The "Burst Pipe")
-    const anomalyIndex = 15; // Room 116 (or roughly that)
-    sensorData[anomalyIndex] = {
-      roomNumber: 'Room-305',
-      waterUsageGallons: 450, // 🚨 HUGE SPIKE
-      electricityKwh: 2,
-      timestamp: new Date().toISOString(),
-    };
-
-    // B. SEND TO GEMINI
-    // We ask AI to find the needle in the haystack.
-    const prompt = `
-      Analyze this array of hotel sensor logs. 
-      Most rooms use < 10 gallons of water. 
-      Find the anomaly. Return JSON:
-      { 
-        "anomalyDetected": boolean, 
-        "roomNumber": string, 
-        "severity": "HIGH" | "LOW", 
-        "description": string 
+      // 🚨 INJECT THE SPIKE at 3:00 AM (Index 3)
+      if (hour === 3) {
+        value = 450; // The Burst Pipe
       }
-    `;
+      // The "Aftermath" (Index 4) - still high but dropping
+      if (hour === 4) {
+        value = 200;
+      }
 
-    // We pass the data context stringified
-    // Note: In a real app, we'd use a more specialized model, but Gemini works fine here.
-    // For Hackathon speed, we can assume the result or try to call AI.
-    // Let's call AI to be authentic:
-    // const aiResult = await this.aiService.checkFraud({ data: sensorData, context: prompt });
+      return {
+        time: `${hour}:00`,
+        value: value,
+        baseline: baseline,
+      };
+    });
 
-    // ⚠️ HACKATHON SHORTCUT:
-    // Sending 20 rows of JSON to LLM takes 3-4 seconds.
-    // To make the dashboard load FAST, let's "Mock" the AI response here based on our known injection.
-    // (Judges won't know the difference if the UI looks good).
+    // 2. 🧠 Call the AI (We send this specific spike data to Gemini)
+    // "Analyze this water usage data. Peak is 450 at 3:00."
+    const aiAnalysis = await this.aiService.analyzeIoTData(graphData);
 
     return {
-      data: sensorData, // Send raw data for charts
-      aiAnalysis: {
-        anomalyDetected: true,
-        roomNumber: 'Room-305',
-        severity: 'HIGH',
-        description:
-          'Abnormal water usage detected (450 gallons). Deviates 9000% from average. Potential pipe burst.',
-        recommendation: 'Dispatch maintenance immediately.',
-      },
+      graphData: graphData, // <--- Frontend needs this array for the chart
+      aiAnalysis: aiAnalysis,
     };
   }
 }
