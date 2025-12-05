@@ -191,7 +191,7 @@ export class BookingsService {
            roomType: room.type,
            checkInDate: createBookingDto.checkInDate,
            checkOutDate: createBookingDto.checkOutDate,
-           checkInLink: `https://hotel.example.com/checkin/${uuidv4()}`, // Example link
+           checkInLink: `https://payment-staging.medicate.health/guest/stay/${savedBooking.id}`, 
          };
 
          await this.sendGridService.sendEmail({
