@@ -1,0 +1,25 @@
+
+services:
+  hms-backend:
+    image: ${IMAGE_NAME}
+    volumes:
+      - /home/ubuntu/.env:/usr/src/app/.env
+    networks:
+      - traefik_public
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.hms-backend.rule=Host(`api-staging.medicate.health`)"
+        - "traefik.http.routers.hms-backend.entrypoints=websecure"
+        - "traefik.http.routers.hms-backend.tls.certresolver=myresolver"
+        - "traefik.http.services.hms-backend.loadbalancer.server.port=5000"
+        - "traefik.http.routers.hms-backend.service=hms-backend"
+
+networks:
+  traefik_public:
+    external: true
