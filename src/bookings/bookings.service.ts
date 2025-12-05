@@ -15,7 +15,10 @@ import { Room } from '../rooms/entities/room.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { User, UserRole } from 'src/users/entities/user.entity';
 import { SendGridService } from 'src/emails/sendgrid.service';
-import { confirmationTemplate, ConfirmationTemplateParams } from 'src/emails/templates/confirmation.template';
+import {
+  confirmationTemplate,
+  ConfirmationTemplateParams,
+} from 'src/emails/templates/confirmation.template';
 
 @Injectable()
 export class BookingsService {
@@ -27,7 +30,7 @@ export class BookingsService {
     @InjectRepository(User) private userRepo: Repository<User>,
     private aiService: AiService,
     private eventsGateway: EventsGateway,
-    private readonly sendGridService: SendGridService
+    private readonly sendGridService: SendGridService,
   ) {}
 
   // async create(createBookingDto: CreateBookingDto, idImageBuffer: Buffer) {
@@ -165,8 +168,6 @@ export class BookingsService {
         role: UserRole.GUEST,
       });
       await this.userRepo.save(user);
-
- 
     }
 
     // Generate Digital Key (QR Secret)
@@ -185,22 +186,34 @@ export class BookingsService {
 
     const savedBooking = await this.bookingRepo.save(booking);
 
-         const confirmationTemplateParams: ConfirmationTemplateParams = {
-           guestName: user.name,
-           bookingId: qrKey, // You can fill this later after saving the booking
-           roomType: room.type,
-           checkInDate: createBookingDto.checkInDate,
-           checkOutDate: createBookingDto.checkOutDate,
-           checkInLink: `https://payment-staging.medicate.health/guest/stay/${savedBooking.id}`, 
-         };
+    // --- 5. EMAIL CONFIRMATION ---
+    this.logger.log(`📧 Sending confirmation email to ${user.email}`);
+    try {
+      const confirmationTemplateParams: ConfirmationTemplateParams = {
+        guestName: user.name,
+        bookingId: qrKey,
+        roomType: room.type,
+        checkInDate: createBookingDto.checkInDate,
+        checkOutDate: createBookingDto.checkOutDate,
+        checkInLink: `https://payment-staging.medicate.health/guest/stay/${savedBooking.id}`,
+      };
 
-         await this.sendGridService.sendEmail({
-           to: [createBookingDto.guestEmail],
-           subject: '',
-           template: confirmationTemplate(confirmationTemplateParams),
-         });
+      await this.sendGridService.sendEmail({
+        to: [createBookingDto.guestEmail],
+        subject: `Your Booking is Confirmed! #${qrKey}`,
+        template: confirmationTemplate(confirmationTemplateParams),
+      });
+      this.logger.log(`✅ Confirmation email sent successfully.`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send confirmation email to ${user.email}`,
+        error.stack,
+      );
+      // We don't re-throw the error because failing to send an email
+      // shouldn't fail the entire booking process.
+    }
 
-    // --- 5. REAL-TIME NOTIFICATION ---
+    // --- 6. REAL-TIME NOTIFICATION ---
     this.eventsGateway.notifyNewBooking({
       id: savedBooking.id,
       guestName: user.name,
