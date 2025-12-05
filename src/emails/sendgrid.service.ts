@@ -47,7 +47,7 @@ export class SendGridService {
         html: template,
       };
 
-      const response = await SendGrid.send(msg);
+      const response = await sgMail.send(msg);
       this.logger.log(`Email sent to ${to}. with response: ${response}`);
     } catch (error) {
       this.logger.error(`Failed to send email to ${to}. error: ${error.message}`);
