@@ -314,4 +314,43 @@ export class AiService {
       return { anomalyDetected: false, description: 'Analysis unavailable' };
     }
   }
+
+  async chatWithConcierge(message: string, context: string = 'GENERAL') {
+    try {
+      const prompt = `
+        You are a Hotel Concierge AI. 
+        User Context: The user is currently looking at the "${context}" section.
+        User Message: "${message}".
+        
+        Available Services & Menu:
+        - FOOD: Gourmet Burger ($18), Truffle Pasta ($22), Caesar Salad ($12), Coke ($3), Champagne ($150).
+        - HOUSEKEEPING: Extra Towels, Clean Room, Pillows, Toiletries.
+        - TRANSPORT: Taxi, Airport Shuttle ($50), Limousine ($200).
+        - CONCIERGE: Wake-up call, Spa Booking, Restaurant Reservation.
+        
+        Task:
+        1. Based on the "${context}" context and the user's message, suggest the most relevant items.
+        2. If the user asks for something outside the current context, politely guide them or suggest it anyway.
+        3. Write a friendly, short reply acting as a helpful concierge.
+        
+        Return STRICT JSON:
+        {
+          "reply": "String (Friendly response)",
+          "suggestions": [
+            { "name": "Item Name", "price": Number (optional), "type": "FOOD" | "TOWELS" | "CLEANING" | "OTHER" }
+          ]
+        }
+      `;
+
+      const result = await this.model.generateContent(prompt);
+      const text = result.response.text();
+      return this.cleanJson(text);
+    } catch (error) {
+      return {
+        reply:
+          "I'm having trouble connecting to the concierge services right now. Please try selecting an item from the menu.",
+        suggestions: [],
+      };
+    }
+  }
 }

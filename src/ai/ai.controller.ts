@@ -79,24 +79,20 @@ export class AiController {
     finalDecision =
       fraudAnalysis.fraudScore > 60 ? 'BLOCK BOOKING' : 'APPROVE BOOKING';
 
-      // initiate booking if final descicion is approve
+    // initiate booking if final descicion is approve
     if (finalDecision === 'APPROVE BOOKING') {
       this.logger.log(`✅ Booking Approved for ${body.guestName}`);
-      
-
     } else {
       this.logger.log(`❌ Booking Blocked for ${body.guestName}`);
       throw new Error('Booking Blocked due to Fraud Detection');
     }
-
 
     return {
       status: 'SIMULATION_COMPLETE',
       step1_vision_analysis: idAnalysis,
       step2_fraud_analysis: fraudAnalysis,
       final_decision: finalDecision,
-    }
-
+    };
 
     // 3. Return the Report (What would happen in the DB)
     // return {
@@ -122,5 +118,10 @@ export class AiController {
   async testId(@UploadedFile() file: Express.Multer.File) {
     const base64 = file.buffer.toString('base64');
     return this.aiService.analyzeID(base64);
+  }
+
+  @Post('chat')
+  async chat(@Body() body: { message: string; context?: string }) {
+    return this.aiService.chatWithConcierge(body.message, body.context);
   }
 }
