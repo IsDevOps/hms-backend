@@ -71,7 +71,7 @@
 //   // Add findAll if needed...
 // }
 
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ServiceRequest, Priority, RequestStatus, ServiceType } from './entities/service-request.entity';
@@ -300,5 +300,59 @@ export class ServiceRequestsService {
     }
 
     return this.reqRepo.find(queryOptions);
+  }
+
+  // src/requests/requests.service.ts
+
+// ... existing imports
+
+// ... inside the class ...
+
+  async seed() {
+    // 1. We need existing bookings to attach requests to
+    const bookings = await this.bookingRepo.find({ take: 10 });
+    
+    if (bookings.length === 0) {
+      throw new BadRequestException(
+        'Cannot seed requests: No bookings found. Please seed bookings first!',
+      );
+    }
+
+    // 2. Define some mock data
+    const mockRequests = [
+      { type: ServiceType.FOOD, desc: 'Club Sandwich & Coke', priority: Priority.NORMAL },
+      { type: ServiceType.CLEANING, desc: 'Need fresh towels', priority: Priority.LOW },
+      { type: ServiceType.CONCIERGE, desc: 'Book taxi for 7 AM tomorrow', priority: Priority.HIGH },
+      { type: ServiceType.FOOD, desc: 'Champagne to room', priority: Priority.HIGH },
+      { type: ServiceType.MAINTENANCE, desc: 'AC is making a weird noise', priority: Priority.HIGH },
+      { type: ServiceType.CLEANING, desc: 'Room makeup please', priority: Priority.NORMAL },
+      { type: ServiceType.FOOD, desc: 'Vegetarian Pizza', priority: Priority.NORMAL },
+      { type: ServiceType.CONCIERGE, desc: 'Late checkout request', priority: Priority.NORMAL },
+    ];
+
+    const newRequests: any = [];
+
+    // 3. Create requests assigning them to random bookings
+    for (const item of mockRequests) {
+      const randomBooking = bookings[Math.floor(Math.random() * bookings.length)];
+      
+      const request = this.reqRepo.create({
+        type: item.type,
+        description: item.desc,
+        priority: item.priority,
+        status: RequestStatus.RECEIVED,
+        booking: randomBooking,
+      });
+
+      newRequests.push(request);
+    }
+
+    // 4. Save all
+    await this.reqRepo.save(newRequests);
+
+    return { 
+      message: '✅ Service Requests Seeded Successfully', 
+      count: newRequests.length 
+    };
   }
 }

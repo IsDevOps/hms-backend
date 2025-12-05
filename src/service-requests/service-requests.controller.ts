@@ -81,4 +81,9 @@ export class ServiceRequestsController {
       updateServiceStatusRequestDto.status,
     );
   }
+
+  @Post('seed')
+  seed() {
+    return this.serviceRequestsService.seed();
+  }
 }
