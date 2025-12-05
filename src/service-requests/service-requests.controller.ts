@@ -35,7 +35,7 @@
 
 import { Controller, Get, Post, Body, Patch, Param, Query } from '@nestjs/common';
 import { ServiceRequestsService } from './service-requests.service';
-import { CreateServiceRequestDto } from './dto/create-service-request.dto';
+import { CreateServiceRequestDto, GetServiceRequestsDto } from './dto/create-service-request.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { RequestStatus, ServiceType } from './entities/service-request.entity';
 import { UpdateServiceRequestDto, UpdateServiceStatusRequestDto } from './dto/update-service-request.dto';
@@ -64,8 +64,8 @@ export class ServiceRequestsController {
     summary: 'Get all active requests (For Admin Dashboard List)',
   })
   @Get()
-  findAll(@Query('type') type?: ServiceType) {
-    return this.serviceRequestsService.findAll(type);
+  findAll(@Query() query: GetServiceRequestsDto) {
+    return this.serviceRequestsService.findAll(query.type);
   }
 
   @Patch(':id/status')

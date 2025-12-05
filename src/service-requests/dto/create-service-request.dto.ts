@@ -9,7 +9,7 @@ import {
   IsDateString,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { ServiceType } from '../entities/service-request.entity'; 
+import { ServiceType } from '../entities/service-request.entity';
 export class CreateServiceRequestDto {
   @ApiProperty({
     description: 'The UUID of the active booking',
@@ -54,4 +54,10 @@ export class CreateServiceRequestDto {
   @IsDateString()
   @IsOptional()
   scheduledTime?: string;
+}
+
+export class GetServiceRequestsDto {
+  @IsOptional()
+  @IsEnum(ServiceType)
+  type?: ServiceType;
 }
