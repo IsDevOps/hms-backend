@@ -71,16 +71,22 @@ export const confirmationTemplate = ({
             <tr>
                 <td class="header">
                     <!-- Replace with your logo URL -->
-                    <img src="https://via.placeholder.com/120x40/0f172a/ffffff?text=LUMEN+HOTEL" alt="Lumen Hotel" width="120" style="margin: 0 auto;">
+                    <img src="https://via.placeholder.com/120x40/0f172a/ffffff?text=GRAND+HOTEL" alt="Lumen Hotel" width="120" style="margin: 0 auto;">
                 </td>
             </tr>
 
             <!-- Hero Image (Optional) -->
             <tr>
-                <td>
-                    <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=1200&auto=format&fit=crop" alt="Luxury Room" class="hero-image">
-                </td>
-            </tr>
+    <td align="center" style="padding: 0; margin: 0; font-size: 0; line-height: 0;">
+        <img 
+            src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&h=200&q=80" 
+            alt="Luxury Room" 
+            width="600"
+            height="200"
+            style="display: block; width: 100%; max-width: 600px; height: auto; object-fit: cover; border: 0;"
+        >
+    </td>
+</tr>
 
             <!-- Main Content -->
             <tr>
