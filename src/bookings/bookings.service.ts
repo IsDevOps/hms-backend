@@ -14,6 +14,8 @@ import { EventsGateway } from '../events/events.gateway'; // The Socket Gateway
 import { Room } from '../rooms/entities/room.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { User, UserRole } from 'src/users/entities/user.entity';
+import { SendGridService } from 'src/emails/sendgrid.service';
+import { confirmationTemplate, ConfirmationTemplateParams } from 'src/emails/templates/confirmation.template';
 
 @Injectable()
 export class BookingsService {
@@ -25,6 +27,7 @@ export class BookingsService {
     @InjectRepository(User) private userRepo: Repository<User>,
     private aiService: AiService,
     private eventsGateway: EventsGateway,
+    private readonly sendGridService: SendGridService
   ) {}
 
   // async create(createBookingDto: CreateBookingDto, idImageBuffer: Buffer) {
@@ -162,6 +165,8 @@ export class BookingsService {
         role: UserRole.GUEST,
       });
       await this.userRepo.save(user);
+
+ 
     }
 
     // Generate Digital Key (QR Secret)
@@ -179,6 +184,21 @@ export class BookingsService {
     });
 
     const savedBooking = await this.bookingRepo.save(booking);
+
+         const confirmationTemplateParams: ConfirmationTemplateParams = {
+           guestName: user.name,
+           bookingId: qrKey, // You can fill this later after saving the booking
+           roomType: room.type,
+           checkInDate: createBookingDto.checkInDate,
+           checkOutDate: createBookingDto.checkOutDate,
+           checkInLink: `https://hotel.example.com/checkin/${uuidv4()}`, // Example link
+         };
+
+         await this.sendGridService.sendEmail({
+           to: [createBookingDto.guestEmail],
+           subject: '',
+           template: confirmationTemplate(confirmationTemplateParams),
+         });
 
     // --- 5. REAL-TIME NOTIFICATION ---
     this.eventsGateway.notifyNewBooking({
