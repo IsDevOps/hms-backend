@@ -304,42 +304,82 @@ export class ServiceRequestsService {
 
   // src/requests/requests.service.ts
 
-// ... existing imports
+  // ... existing imports
 
-// ... inside the class ...
+  // ... inside the class ...
 
-  async seed() {
+  async seed(customData: any[]) {
     // 1. We need existing bookings to attach requests to
-    const bookings = await this.bookingRepo.find({ take: 10 });
-    
+    const bookings = await this.bookingRepo.find({ take: 20 });
+
     if (bookings.length === 0) {
       throw new BadRequestException(
         'Cannot seed requests: No bookings found. Please seed bookings first!',
       );
     }
 
-    // 2. Define some mock data
-    const mockRequests = [
-      { type: ServiceType.FOOD, desc: 'Club Sandwich & Coke', priority: Priority.NORMAL },
-      { type: ServiceType.CLEANING, desc: 'Need fresh towels', priority: Priority.LOW },
-      { type: ServiceType.CONCIERGE, desc: 'Book taxi for 7 AM tomorrow', priority: Priority.HIGH },
-      { type: ServiceType.FOOD, desc: 'Champagne to room', priority: Priority.HIGH },
-      { type: ServiceType.MAINTENANCE, desc: 'AC is making a weird noise', priority: Priority.HIGH },
-      { type: ServiceType.CLEANING, desc: 'Room makeup please', priority: Priority.NORMAL },
-      { type: ServiceType.FOOD, desc: 'Vegetarian Pizza', priority: Priority.NORMAL },
-      { type: ServiceType.CONCIERGE, desc: 'Late checkout request', priority: Priority.NORMAL },
-    ];
+    // 2. Use Custom Data or Default Mock Data
+    let dataToSeed = customData;
 
-    const newRequests: any = [];
+    if (!dataToSeed || dataToSeed.length === 0) {
+      this.logger.log('No custom seed data provided. Using default mock data.');
+      dataToSeed = [
+        {
+          type: ServiceType.FOOD,
+          description: 'Club Sandwich & Coke',
+          priority: Priority.NORMAL,
+        },
+        {
+          type: ServiceType.CLEANING,
+          description: 'Need fresh towels',
+          priority: Priority.LOW,
+        },
+        {
+          type: ServiceType.CONCIERGE,
+          description: 'Book taxi for 7 AM tomorrow',
+          priority: Priority.HIGH,
+        },
+        {
+          type: ServiceType.FOOD,
+          description: 'Champagne to room',
+          priority: Priority.HIGH,
+        },
+        {
+          type: ServiceType.MAINTENANCE,
+          description: 'AC is making a weird noise',
+          priority: Priority.HIGH,
+        },
+        {
+          type: ServiceType.CLEANING,
+          description: 'Room makeup please',
+          priority: Priority.NORMAL,
+        },
+        {
+          type: ServiceType.FOOD,
+          description: 'Vegetarian Pizza',
+          priority: Priority.NORMAL,
+        },
+        {
+          type: ServiceType.CONCIERGE,
+          description: 'Late checkout request',
+          priority: Priority.NORMAL,
+        },
+      ];
+    }
+
+    const newRequests: ServiceRequest[] = [];
 
     // 3. Create requests assigning them to random bookings
-    for (const item of mockRequests) {
-      const randomBooking = bookings[Math.floor(Math.random() * bookings.length)];
-      
+    for (const item of dataToSeed) {
+      // Pick a random booking to assign this request to
+      const randomBooking =
+        bookings[Math.floor(Math.random() * bookings.length)];
+
       const request = this.reqRepo.create({
         type: item.type,
-        description: item.desc,
-        priority: item.priority,
+        // Handle 'desc' or 'description' keys to be flexible
+        description: item.description || item.desc || 'Service Request',
+        priority: item.priority || Priority.NORMAL,
         status: RequestStatus.RECEIVED,
         booking: randomBooking,
       });
@@ -350,9 +390,15 @@ export class ServiceRequestsService {
     // 4. Save all
     await this.reqRepo.save(newRequests);
 
-    return { 
-      message: '✅ Service Requests Seeded Successfully', 
-      count: newRequests.length 
+    return {
+      message: '✅ Service Requests Seeded Successfully',
+      count: newRequests.length,
+      seeded: newRequests,
     };
+  }
+
+  async removeAll() {
+    await this.reqRepo.clear();
+    return { message: 'All service requests have been deleted successfully.' };
   }
 }

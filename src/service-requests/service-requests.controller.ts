@@ -33,11 +33,11 @@
 //   }
 // }
 
-import { Controller, Get, Post, Body, Patch, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, Delete } from '@nestjs/common';
 import { ServiceRequestsService } from './service-requests.service';
 import { CreateServiceRequestDto, GetServiceRequestsDto } from './dto/create-service-request.dto';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { RequestStatus, ServiceType } from './entities/service-request.entity';
+import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
+import { Priority, RequestStatus, ServiceType } from './entities/service-request.entity';
 import { UpdateServiceRequestDto, UpdateServiceStatusRequestDto } from './dto/update-service-request.dto';
 
 @ApiTags('Service Requests')
@@ -83,7 +83,35 @@ export class ServiceRequestsController {
   }
 
   @Post('seed')
-  seed() {
-    return this.serviceRequestsService.seed();
+  @ApiOperation({ summary: 'Bulk Create Service Requests (JSON Array)' })
+  @ApiBody({
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          type: {
+            type: 'string',
+            enum: Object.values(ServiceType),
+            example: 'FOOD',
+          },
+          description: { type: 'string', example: 'Burger and Fries' },
+          priority: {
+            type: 'string',
+            enum: Object.values(Priority),
+            example: 'NORMAL',
+          },
+        },
+      },
+    },
+  })
+  seed(@Body() seedData: any[]) {
+    return this.serviceRequestsService.seed(seedData);
+  }
+
+  @Delete()
+  @ApiOperation({ summary: 'Delete ALL service requests (Cleanup)' })
+  removeAll() {
+    return this.serviceRequestsService.removeAll();
   }
 }
