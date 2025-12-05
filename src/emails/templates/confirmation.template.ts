@@ -77,9 +77,7 @@ export const confirmationTemplate = ({
 
             <!-- Hero Image (Optional) -->
             <tr>
-    <td align="center" style="padding: 0; margin: 0; font-size: 0; line-height: 0;">
-        <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&amp;auto=format&amp;fit=crop&amp;w=600&amp;h=200&amp;q=80" alt="Luxury Room" width="600" height="200" style="display: block; width: 100%; max-width: 600px; height: auto; object-fit: cover; border: 0;">
-    </td>
+        <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&amp;auto=format&amp;fit=crop&amp;w=600&amp;h=200&amp;q=80" alt="Luxury Room" width="600" height="200" style="display: block; width: 100%; border: 0;">
 </tr>
 
             <!-- Main Content -->
