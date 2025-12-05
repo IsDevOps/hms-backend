@@ -22,6 +22,14 @@ export enum Priority {
   HIGH = 'HIGH', // AI sets this to HIGH if sentiment is negative/urgent
 }
 
+export enum RequestStatus {
+  RECEIVED = 'RECEIVED',
+  IN_PROGRESS = 'IN_PROGRESS', // Chef cooking / Maid cleaning
+  ON_WAY = 'ON_WAY', // Waiter walking to room
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
 @Entity()
 export class ServiceRequest {
   @PrimaryGeneratedColumn('uuid')
@@ -36,8 +44,8 @@ export class ServiceRequest {
   @Column('text')
   description: string;
 
-  @Column({ default: 'OPEN' })
-  status: string; // OPEN, IN_PROGRESS, CLOSED
+//   @Column({ default: 'OPEN' })
+//   status: string; // OPEN, IN_PROGRESS, CLOSED
 
   @Column({
     type: 'enum',
@@ -48,6 +56,17 @@ export class ServiceRequest {
 
   @ManyToOne(() => Booking, (booking) => booking.requests)
   booking: Booking;
+
+  @Column({
+    type: 'enum',
+    enum: RequestStatus,
+    default: RequestStatus.RECEIVED,
+  })
+  status: RequestStatus;
+
+  @Column({ type: 'timestamp', nullable: true })
+  scheduledTime: Date; // Null means "ASAP"
+
 
   @CreateDateColumn()
   createdAt: Date;

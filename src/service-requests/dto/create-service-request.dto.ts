@@ -6,6 +6,7 @@ import {
   IsUUID,
   IsInt,
   Min,
+  IsDateString,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { ServiceType } from '../entities/service-request.entity'; 
@@ -44,4 +45,12 @@ export class CreateServiceRequestDto {
   @Min(1)
   @IsOptional()
   quantity?: number;
+
+  @ApiProperty({
+    description: 'Schedule for later (ISO Date)',
+    required: false,
+  })
+  @IsDateString()
+  @IsOptional()
+  scheduledTime?: string;
 }

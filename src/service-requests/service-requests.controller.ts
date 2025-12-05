@@ -33,10 +33,11 @@
 //   }
 // }
 
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param } from '@nestjs/common';
 import { ServiceRequestsService } from './service-requests.service';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { RequestStatus } from './entities/service-request.entity';
 
 @ApiTags('Service Requests')
 @Controller('service-requests')
@@ -64,4 +65,14 @@ export class ServiceRequestsController {
   findAll() {
     return this.serviceRequestsService.findAll();
   }
+
+  @Patch(':id/status')
+  @ApiOperation({
+    summary: 'Admin updates status (Triggers WebSocket update to Guest)',
+  })
+  updateStatus(@Param('id') id: string, @Body('status') status: RequestStatus) {
+    return this.serviceRequestsService.updateStatus(id, status);
+  }
+
+ 
 }
