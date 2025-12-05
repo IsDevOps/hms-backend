@@ -79,7 +79,11 @@ jobs:
       - name: Deploy to Swarm
         run: |
           export IMAGE_NAME=ghcr.io/${{ env.IMAGE_NAME }}:latest
-          docker stack deploy --with-registry-auth -c docker-compose.yml ${{ env.STACK_NAME }}
+          # --resolve-image always ensures the manager resolves the latest digest from the registry
+          docker stack deploy --with-registry-auth --resolve-image always -c docker-compose.yml ${{ env.STACK_NAME }}
+          
+          # Optional: Prune old images to save space ("remove the old")
+          docker image prune -f
       
       - name: Verify Deployment
         run: |
