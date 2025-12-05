@@ -9,6 +9,13 @@ import { ActivityLogModule } from './activity-log/activity-log.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { User } from './users/entities/user.entity';
+import { Room } from './rooms/entities/room.entity';
+import { Booking } from './bookings/entities/booking.entity';
+import { ServiceRequest } from './service-requests/entities/service-request.entity';
+import { AiModule } from './ai/ai.module';
+import { EventsModule } from './events/events.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -24,8 +31,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         username: configService.get<string>('DATABASE_USER'),
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
-        autoLoadEntities: true,
-        synchronize: true, // TRUE is fine for Hackathons (auto-updates DB)
+        entities: [User, Room, Booking, ServiceRequest],
+        synchronize: true,
       }),
       inject: [ConfigService],
     }),
@@ -34,6 +41,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     BookingsModule,
     ServiceRequestsModule,
     ActivityLogModule,
+    AiModule,
+    EventsModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,4 +1,3 @@
-import { Booking } from 'src/bookings/entities/booking.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,18 +5,21 @@ import {
   ManyToOne,
   CreateDateColumn,
 } from 'typeorm';
+import { Booking } from '../../bookings/entities/booking.entity';
 
 export enum ServiceType {
-  FOOD = 'FOOD',
-  CLEANING = 'CLEANING',
-  MAINTENANCE = 'MAINTENANCE',
+  FOOD = 'FOOD', // Burgers, Pasta (Room Service)
+  CLEANING = 'CLEANING', // "Clean my room"
+  TOWELS = 'TOWELS', // "Need 2 towels"
+  MAINTENANCE = 'MAINTENANCE', // "AC is broken"
+  CONCIERGE = 'CONCIERGE', // Free text: "Book a taxi", "Wake up call"
   OTHER = 'OTHER',
 }
 
 export enum Priority {
   LOW = 'LOW',
   NORMAL = 'NORMAL',
-  HIGH = 'HIGH', // AI sets this if guest message is "angry"
+  HIGH = 'HIGH', // AI sets this to HIGH if sentiment is negative/urgent
 }
 
 @Entity()
@@ -32,10 +34,10 @@ export class ServiceRequest {
   type: ServiceType;
 
   @Column('text')
-  description: string; // "I need 3 towels" or "Burger with fries"
+  description: string;
 
-  @Column({ default: 'PENDING' })
-  status: string; // PENDING, DONE
+  @Column({ default: 'OPEN' })
+  status: string; // OPEN, IN_PROGRESS, CLOSED
 
   @Column({
     type: 'enum',
