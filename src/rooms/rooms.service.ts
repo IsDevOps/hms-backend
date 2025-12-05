@@ -26,6 +26,7 @@ export class RoomsService {
   // 3. Get All Rooms (For Admin Dashboard)
   async findAll() {
     return await this.roomsRepository.find({
+      relations: ['bookings'],
       order: { number: 'ASC' },
     });
   }
