@@ -12,6 +12,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AiService } from './ai.service';
 import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { CreateBookingDto } from 'src/bookings/dto/create-booking.dto';
 
 @ApiTags('AI Test')
 @Controller('ai-test')
@@ -41,7 +42,7 @@ export class AiController {
   })
   @UseInterceptors(FileInterceptor('file'))
   async simulateBooking(
-    @Body() body: any, // We accept the text fields here
+    @Body() body: CreateBookingDto, // We accept the text fields here
     @UploadedFile(
       new ParseFilePipe({
         validators: [
@@ -52,6 +53,7 @@ export class AiController {
     )
     file: Express.Multer.File,
   ) {
+    let finalDecision: string = '';
     this.logger.log(`🕵️ Starting Simulation for Guest: ${body.guestName}`);
 
     // 1. Vision Analysis (Check the ID)
@@ -74,14 +76,36 @@ export class AiController {
 
     this.logger.log(`🛡️ Fraud Result: ${JSON.stringify(fraudAnalysis)}`);
 
-    // 3. Return the Report (What would happen in the DB)
+    finalDecision =
+      fraudAnalysis.fraudScore > 60 ? 'BLOCK BOOKING' : 'APPROVE BOOKING';
+
+      // initiate booking if final descicion is approve
+    if (finalDecision === 'APPROVE BOOKING') {
+      this.logger.log(`✅ Booking Approved for ${body.guestName}`);
+      
+
+    } else {
+      this.logger.log(`❌ Booking Blocked for ${body.guestName}`);
+      throw new Error('Booking Blocked due to Fraud Detection');
+    }
+
+
     return {
       status: 'SIMULATION_COMPLETE',
       step1_vision_analysis: idAnalysis,
       step2_fraud_analysis: fraudAnalysis,
-      final_decision:
-        fraudAnalysis.fraudScore > 60 ? 'BLOCK BOOKING' : 'APPROVE BOOKING',
-    };
+      final_decision: finalDecision,
+    }
+
+
+    // 3. Return the Report (What would happen in the DB)
+    // return {
+    //   status: 'SIMULATION_COMPLETE',
+    //   step1_vision_analysis: idAnalysis,
+    //   step2_fraud_analysis: fraudAnalysis,
+    //   final_decision:
+    //     fraudAnalysis.fraudScore > 60 ? 'BLOCK BOOKING' : 'APPROVE BOOKING',
+    // };
   }
 
   // --- KEEPING THE SIMPLE TESTS ---

@@ -24,47 +24,138 @@ export class AiService {
     });
   }
 
-  /**
-   * 1. ID Verification (Vision)
-   * Takes a base64 image string, asks Gemini to validate it.
-   */
+  // /**
+  //  * 1. ID Verification (Vision)
+  //  * Takes a base64 image string, asks Gemini to validate it.
+  //  */
+  // async analyzeID(base64Image: string) {
+  //   try {
+  //     // Remove header if present (data:image/jpeg;base64,...)
+  //     const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, '');
+
+  //     const prompt = `
+  //       Act as a security officer. Analyze this image of an ID card.
+  //       1. Extract the Name and Date of Birth.
+  //       2. Check for visual signs of forgery (blurry text, mismatched fonts).
+  //       3. Return a STRICT JSON object. Do not use Markdown.
+
+  //       JSON Format:
+  //       {
+  //         "isValid": boolean,
+  //         "extractedName": string,
+  //         "dob": string,
+  //         "fraudScore": number (0-100, where 100 is fake),
+  //         "reason": string
+  //       }
+  //     `;
+
+  //     const imagePart = {
+  //       inlineData: {
+  //         data: cleanBase64,
+  //         mimeType: 'image/jpeg',
+  //       },
+  //     };
+
+  //     const result = await this.model.generateContent([prompt, imagePart]);
+  //     const text = result.response.text();
+
+  //     return this.cleanJson(text);
+  //   } catch (error) {
+  //     this.logger.error('AI Vision Failed', error);
+  //     // Fallback for demo: If AI fails, auto-approve to not break the flow
+  //     console.warn('⚠️ AI Failed. Switching to Demo Fallback Mode.');
+
+  //     return {
+  //       isValid: true,
+  //       extractedName: 'Demo User',
+  //       fraudScore: 0,
+  //       reason: 'AI Service Unavailable',
+  //     };
+  //   }
+  // }
+
+  // /**
+  //  * 2. Fraud Analysis (Text)
+  //  * Analyzes booking patterns.
+  //  */
+  // async checkBookingFraud(bookingData: any) {
+  //   try {
+  //     const prompt = `
+  //       Analyze this hotel booking for fraud risk.
+  //       Data: ${JSON.stringify(bookingData)}
+
+  //       Rules:
+  //       - Last minute bookings (same day) are slightly suspicious.
+  //       - Mismatched IP countries vs ID countries are HIGH risk.
+  //       - Return STRICT JSON.
+
+  //       JSON Format:
+  //       {
+  //         "fraudScore": number (0-100),
+  //         "riskLevel": "LOW" | "MEDIUM" | "HIGH",
+  //         "reason": string
+  //       }
+  //     `;
+
+  //     const result = await this.model.generateContent(prompt);
+  //     const text = result.response.text();
+  //     return this.cleanJson(text);
+  //   } catch (error) {
+  //     return { fraudScore: 0, riskLevel: 'LOW', reason: 'AI Checked Skipped' };
+  //   }
+  // }
+
+  // // Helper to remove ```json ... ``` from Gemini response
+  // private cleanJson(text: string) {
+  //   const cleaned = text.replace(/```json|```/g, '').trim();
+  //   try {
+  //     return JSON.parse(cleaned);
+  //   } catch (e) {
+  //     this.logger.error('Failed to parse JSON from AI', text);
+  //     return {};
+  //   }
+  // }
+
+  private cleanJson(text: string) {
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    try {
+      return JSON.parse(cleaned);
+    } catch (e) {
+      this.logger.error('Failed to parse JSON from AI', text);
+      // Fail safely so the demo doesn't crash
+      return { isValid: false, fraudScore: 0, reason: 'AI Parse Error' };
+    }
+  }
+
+  // STEP 1: Vision Analysis (Read the ID)
   async analyzeID(base64Image: string) {
     try {
-      // Remove header if present (data:image/jpeg;base64,...)
-      const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, '');
-
       const prompt = `
         Act as a security officer. Analyze this image of an ID card.
         1. Extract the Name and Date of Birth.
         2. Check for visual signs of forgery (blurry text, mismatched fonts).
-        3. Return a STRICT JSON object. Do not use Markdown.
+        3. Return STRICT JSON. No markdown.
         
         JSON Format:
         {
           "isValid": boolean,
           "extractedName": string,
           "dob": string,
-          "fraudScore": number (0-100, where 100 is fake),
+          "fraudScore": number,
           "reason": string
         }
       `;
 
       const imagePart = {
-        inlineData: {
-          data: cleanBase64,
-          mimeType: 'image/jpeg',
-        },
+        inlineData: { data: base64Image, mimeType: 'image/jpeg' },
       };
 
       const result = await this.model.generateContent([prompt, imagePart]);
       const text = result.response.text();
-
       return this.cleanJson(text);
     } catch (error) {
-      this.logger.error('AI Vision Failed', error);
-      // Fallback for demo: If AI fails, auto-approve to not break the flow
-      console.warn('⚠️ AI Failed. Switching to Demo Fallback Mode.');
-
+      this.logger.error(`AI Vision Failed: ${error.message}`);
+      // Fallback for Hackathon: Auto-approve if AI is down
       return {
         isValid: true,
         extractedName: 'Demo User',
@@ -74,10 +165,7 @@ export class AiService {
     }
   }
 
-  /**
-   * 2. Fraud Analysis (Text)
-   * Analyzes booking patterns.
-   */
+  // STEP 2: Context Analysis (Fraud Check)
   async checkBookingFraud(bookingData: any) {
     try {
       const prompt = `
@@ -85,8 +173,8 @@ export class AiService {
         Data: ${JSON.stringify(bookingData)}
         
         Rules:
-        - Last minute bookings (same day) are slightly suspicious.
-        - Mismatched IP countries vs ID countries are HIGH risk.
+        - Mismatched IP countries or ID names are HIGH risk.
+        - Last minute bookings are MEDIUM risk.
         - Return STRICT JSON.
         
         JSON Format:
@@ -105,21 +193,37 @@ export class AiService {
     }
   }
 
-  // Helper to remove ```json ... ``` from Gemini response
-  private cleanJson(text: string) {
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    try {
-      return JSON.parse(cleaned);
-    } catch (e) {
-      this.logger.error('Failed to parse JSON from AI', text);
-      return {};
-    }
-  }
-
   /**
    * 3. Sentiment Analysis (For Service Requests)
    * Determines if a guest is angry or happy to set priority.
    */
+  // async analyzeSentiment(text: string) {
+  //   try {
+  //     const prompt = `
+  //       Analyze the sentiment of this hotel guest request: "${text}".
+
+  //       Rules:
+  //       - If the guest is angry, frustrated, or threatening, priority is 'HIGH'.
+  //       - If the guest is polite or neutral, priority is 'NORMAL'.
+  //       - If the guest is complimenting, priority is 'LOW'.
+
+  //       Return STRICT JSON:
+  //       {
+  //         "sentiment": "POSITIVE" | "NEUTRAL" | "NEGATIVE",
+  //         "priority": "HIGH" | "NORMAL" | "LOW",
+  //         "analysis": "Short explanation of why"
+  //       }
+  //     `;
+
+  //     const result = await this.model.generateContent(prompt);
+  //     const textResponse = result.response.text();
+  //     return this.cleanJson(textResponse);
+  //   } catch (error) {
+  //     // Fallback
+  //     return { sentiment: 'NEUTRAL', priority: 'NORMAL', analysis: 'AI Busy' };
+  //   }
+  // }
+
   async analyzeSentiment(text: string) {
     try {
       const prompt = `
@@ -142,7 +246,6 @@ export class AiService {
       const textResponse = result.response.text();
       return this.cleanJson(textResponse);
     } catch (error) {
-      // Fallback
       return { sentiment: 'NEUTRAL', priority: 'NORMAL', analysis: 'AI Busy' };
     }
   }

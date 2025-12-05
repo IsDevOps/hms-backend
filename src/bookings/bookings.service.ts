@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -26,60 +27,160 @@ export class BookingsService {
     private eventsGateway: EventsGateway,
   ) {}
 
-  async create(createBookingDto: CreateBookingDto, idImageBuffer: Buffer) {
-    this.logger.log(`📝 Processing booking for: ${createBookingDto.guestName}`);
+  // async create(createBookingDto: CreateBookingDto, idImageBuffer: Buffer) {
+  //   this.logger.log(`📝 Processing booking for: ${createBookingDto.guestName}`);
 
-    // 1. Validate Room
+  //   // 1. Validate Room
+  //   const room = await this.roomRepo.findOne({
+  //     where: { id: createBookingDto.roomId },
+  //   });
+  //   if (!room) throw new NotFoundException('Room not found');
+
+  //   // 2. Find or Create Guest
+  //   let user = await this.userRepo.findOne({
+  //     where: { email: createBookingDto.guestEmail },
+  //   });
+  //   if (!user) {
+  //     user = this.userRepo.create({
+  //       email: createBookingDto.guestEmail,
+  //       name: createBookingDto.guestName,
+  //       role: UserRole.GUEST,
+  //     });
+  //     await this.userRepo.save(user);
+  //   }
+
+  //   // 3. 🤖 AI Analysis (ID + Fraud)
+  //   const base64Image = idImageBuffer.toString('base64');
+
+  //   // Check ID
+  //   const aiIdResult = await this.aiService.analyzeID(base64Image);
+
+  //   // Check Context (Fraud)
+  //   const fraudContext = {
+  //     bookingName: createBookingDto.guestName,
+  //     idName: aiIdResult.extractedName,
+  //     idIsValid: aiIdResult.isValid,
+  //     email: createBookingDto.guestEmail,
+  //   };
+  //   const fraudCheck = await this.aiService.checkBookingFraud(fraudContext);
+
+  //   // 4. Generate Digital Key
+  //   const qrKey = `KEY-${room.number}-${uuidv4().slice(0, 6).toUpperCase()}`;
+
+  //   // 5. Save to DB
+  //   const booking = this.bookingRepo.create({
+  //     ...createBookingDto,
+  //     guest: user,
+  //     room: room,
+  //     fraudScore: fraudCheck.fraudScore || 0,
+  //     fraudReason: fraudCheck.reason || 'None',
+  //     qrCodeSecret: qrKey,
+  //     status: BookingStatus.CONFIRMED,
+  //   });
+
+  //   const savedBooking = await this.bookingRepo.save(booking);
+
+  //   // 6. 📡 WebSocket Trigger (Notify Admin)
+  //   this.eventsGateway.notifyNewBooking({
+  //     id: savedBooking.id,
+  //     guestName: user.name,
+  //     roomNumber: room.number,
+  //     fraudScore: savedBooking.fraudScore,
+  //     timestamp: new Date(),
+  //   });
+
+  //   if (savedBooking.fraudScore > 75) {
+  //     this.eventsGateway.notifyFraudAlert({
+  //       message: `High Risk Booking Detected: Room ${room.number}`,
+  //       reason: savedBooking.fraudReason,
+  //     });
+  //   }
+
+  //   return savedBooking;
+  // }
+
+  async create(createBookingDto: CreateBookingDto, idImageBuffer: Buffer) {
+    this.logger.log(`📝 Processing Booking for: ${createBookingDto.guestName}`);
+
+    // --- 1. VISION ANALYSIS (AI Eyes) ---
+    // We check the ID first. If it's not a valid ID, we stop.
+    const base64Image = idImageBuffer.toString('base64');
+    const idAnalysis = await this.aiService.analyzeID(base64Image);
+
+    this.logger.log(`👁️ AI Vision Analysis: ${JSON.stringify(idAnalysis)}`);
+
+    // --- 2. FRAUD CONTEXT CHECK (AI Brain) ---
+    // We combine form data + ID data to see if they match.
+    const fraudContext = {
+      formName: createBookingDto.guestName,
+      formEmail: createBookingDto.guestEmail,
+      idExtractedName: idAnalysis.extractedName,
+      idIsValid: idAnalysis.isValid,
+      checkInDate: createBookingDto.checkInDate,
+    };
+
+    const fraudAnalysis = await this.aiService.checkBookingFraud(fraudContext);
+    this.logger.log(
+      `🛡️ AI Fraud Score: ${fraudAnalysis.fraudScore}/100 (${fraudAnalysis.riskLevel})`,
+    );
+
+    // --- 3. THE GATEKEEPER ---
+    // If Fraud Score > 60, we REJECT the booking.
+    if (fraudAnalysis.fraudScore > 60) {
+      this.logger.warn(`❌ Booking BLOCKED. Reason: ${fraudAnalysis.reason}`);
+
+      // Notify Admin Dashboard of the attempt
+      this.eventsGateway.notifyFraudAlert({
+        message: `Blocked Booking Attempt: ${createBookingDto.guestName}`,
+        reason: fraudAnalysis.reason,
+        score: fraudAnalysis.fraudScore,
+      });
+
+      // Throw error to Frontend
+      throw new ForbiddenException({
+        message: 'Security Verification Failed',
+        reason: fraudAnalysis.reason,
+        fraudScore: fraudAnalysis.fraudScore,
+      });
+    }
+
+    // --- 4. DATABASE OPERATIONS ---
+    // Find Room
     const room = await this.roomRepo.findOne({
       where: { id: createBookingDto.roomId },
     });
     if (!room) throw new NotFoundException('Room not found');
 
-    // 2. Find or Create Guest
+    // Find or Create Guest
     let user = await this.userRepo.findOne({
       where: { email: createBookingDto.guestEmail },
     });
     if (!user) {
       user = this.userRepo.create({
         email: createBookingDto.guestEmail,
-        name: createBookingDto.guestName,
+        name: createBookingDto.guestName, // Use name from form, or idAnalysis.extractedName if you prefer
         role: UserRole.GUEST,
       });
       await this.userRepo.save(user);
     }
 
-    // 3. 🤖 AI Analysis (ID + Fraud)
-    const base64Image = idImageBuffer.toString('base64');
+    // Generate Digital Key (QR Secret)
+    const qrKey = `KEY-${room.number}-${uuidv4().slice(0, 8).toUpperCase()}`;
 
-    // Check ID
-    const aiIdResult = await this.aiService.analyzeID(base64Image);
-
-    // Check Context (Fraud)
-    const fraudContext = {
-      bookingName: createBookingDto.guestName,
-      idName: aiIdResult.extractedName,
-      idIsValid: aiIdResult.isValid,
-      email: createBookingDto.guestEmail,
-    };
-    const fraudCheck = await this.aiService.checkBookingFraud(fraudContext);
-
-    // 4. Generate Digital Key
-    const qrKey = `KEY-${room.number}-${uuidv4().slice(0, 6).toUpperCase()}`;
-
-    // 5. Save to DB
+    // Save Booking
     const booking = this.bookingRepo.create({
       ...createBookingDto,
       guest: user,
       room: room,
-      fraudScore: fraudCheck.fraudScore || 0,
-      fraudReason: fraudCheck.reason || 'None',
+      fraudScore: fraudAnalysis.fraudScore,
+      fraudReason: fraudAnalysis.reason || 'Verified by AI',
       qrCodeSecret: qrKey,
       status: BookingStatus.CONFIRMED,
     });
 
     const savedBooking = await this.bookingRepo.save(booking);
 
-    // 6. 📡 WebSocket Trigger (Notify Admin)
+    // --- 5. REAL-TIME NOTIFICATION ---
     this.eventsGateway.notifyNewBooking({
       id: savedBooking.id,
       guestName: user.name,
@@ -88,14 +189,16 @@ export class BookingsService {
       timestamp: new Date(),
     });
 
-    if (savedBooking.fraudScore > 75) {
-      this.eventsGateway.notifyFraudAlert({
-        message: `High Risk Booking Detected: Room ${room.number}`,
-        reason: savedBooking.fraudReason,
-      });
-    }
-
-    return savedBooking;
+    return {
+      success: true,
+      message: 'Booking Confirmed',
+      bookingId: savedBooking.id,
+      qrCode: qrKey,
+      aiReport: {
+        vision: idAnalysis,
+        fraud: fraudAnalysis,
+      },
+    };
   }
 
   async findAll() {
