@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
@@ -13,9 +13,11 @@ export class AdminController {
     return this.adminService.getDashboardStats();
   }
 
-  @Get('anomalies')
-  @ApiOperation({ summary: 'Trigger AI Analysis on (Fake) Sensor Data' })
-  getAnomalies() {
-    return this.adminService.checkAnomalies();
+  // ... inside AdminController ...
+
+  @Get('anomalies/:roomId')
+  @ApiOperation({ summary: 'Get AI Analysis for a specific Room' })
+  getRoomAnomaly(@Param('roomId') roomId: string) {
+    return this.adminService.checkAnomalies(roomId);
   }
 }

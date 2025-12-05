@@ -109,37 +109,105 @@ export class AdminService {
 
   // ... imports
 
-  async checkAnomalies() {
-    // 1. Generate Graph Data (The "Last 12 Hours")
-    // We create an array representing 12:00 AM to 12:00 PM
-    const graphData = Array.from({ length: 13 }, (_, i) => {
-      const hour = i;
-      // Normal baseline is around 50 gallons
-      let value = 40 + Math.floor(Math.random() * 20);
-      let baseline = 50;
+  // async checkAnomalies() {
+  //   // 1. Generate Graph Data (The "Last 12 Hours")
+  //   // We create an array representing 12:00 AM to 12:00 PM
+  //   const graphData = Array.from({ length: 13 }, (_, i) => {
+  //     const hour = i;
+  //     // Normal baseline is around 50 gallons
+  //     let value = 40 + Math.floor(Math.random() * 20);
+  //     let baseline = 50;
 
-      // 🚨 INJECT THE SPIKE at 3:00 AM (Index 3)
-      if (hour === 3) {
-        value = 450; // The Burst Pipe
-      }
-      // The "Aftermath" (Index 4) - still high but dropping
-      if (hour === 4) {
-        value = 200;
-      }
+  //     // 🚨 INJECT THE SPIKE at 3:00 AM (Index 3)
+  //     if (hour === 3) {
+  //       value = 450; // The Burst Pipe
+  //     }
+  //     // The "Aftermath" (Index 4) - still high but dropping
+  //     if (hour === 4) {
+  //       value = 200;
+  //     }
 
-      return {
-        time: `${hour}:00`,
-        value: value,
-        baseline: baseline,
-      };
-    });
+  //     return {
+  //       time: `${hour}:00`,
+  //       value: value,
+  //       baseline: baseline,
+  //     };
+  //   });
 
-    // 2. 🧠 Call the AI (We send this specific spike data to Gemini)
-    // "Analyze this water usage data. Peak is 450 at 3:00."
-    const aiAnalysis = await this.aiService.analyzeIoTData(graphData);
+  //   // 2. 🧠 Call the AI (We send this specific spike data to Gemini)
+  //   // "Analyze this water usage data. Peak is 450 at 3:00."
+  //   const aiAnalysis = await this.aiService.analyzeIoTData(graphData);
+
+  //   return {
+  //     graphData: graphData, // <--- Frontend needs this array for the chart
+  //     aiAnalysis: aiAnalysis,
+  //   };
+  // }
+
+  // ... inside AdminService ...
+
+  async checkAnomalies(roomId: string) {
+    // We assume the frontend sends the UUID of one of the "Maintenance" rooms.
+    // To keep it simple for the Hackathon, we'll hash the ID or just alternate logic.
+    // Let's create two specific scenarios based on the input.
+
+    let metric = 'Water Consumption (Gallons)';
+    let graphData: any = [];
+    let promptContext = '';
+
+    // SCENARIO 1: WATER LEAK (The Burst Pipe)
+    // We'll use this scenario if the ID ends in an even number or letter, or just default to it.
+    if (!roomId || roomId.charCodeAt(0) % 2 === 0) {
+      metric = 'Water Consumption (Gallons)';
+      promptContext =
+        'Analyze this water usage data. Normal is 50. Peak is 450.';
+
+      graphData = Array.from({ length: 13 }, (_, i) => {
+        let value = 40 + Math.floor(Math.random() * 20); // Normal: 40-60
+        const baseline = 50;
+
+        // 🚨 The Spike at 3:00 AM
+        if (i === 3) value = 450;
+        if (i === 4) value = 200;
+
+        return { time: `${i}:00`, value, baseline };
+      });
+    }
+
+    // SCENARIO 2: SMOKE / TEMPERATURE (The Fire Hazard)
+    else {
+      metric = 'Temperature (°F)';
+      promptContext =
+        'Analyze this room temperature sensor data. Normal is 70F. Peak is 140F.';
+
+      graphData = Array.from({ length: 13 }, (_, i) => {
+        let value = 68 + Math.floor(Math.random() * 4); // Normal: 68-72
+        const baseline = 70;
+
+        // 🚨 The Spike at 9:00 AM
+        if (i === 9) value = 145; // Fire/Heat spike
+        if (i === 10) value = 110;
+
+        return { time: `${i}:00`, value, baseline };
+      });
+    }
+
+    // 2. 🧠 Call the AI with the specific context
+    // We wrap the data so Gemini knows what "value" represents
+    const aiPayload = {
+      metric: metric,
+      data: graphData,
+    };
+
+    const aiAnalysis = await this.aiService.analyzeIoTData(aiPayload);
 
     return {
-      graphData: graphData, // <--- Frontend needs this array for the chart
+      roomDetails: {
+        id: roomId,
+        sensorType: metric.split(' ')[0], // "Water" or "Temperature"
+      },
+      graphData: graphData,
+      metricLabel: metric, // Frontend needs to know what label to put on the Chart Y-Axis
       aiAnalysis: aiAnalysis,
     };
   }

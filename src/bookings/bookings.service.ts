@@ -159,4 +159,20 @@ export class BookingsService {
 
     return { count: results.length, seeded: results };
   }
+
+  // find one
+  // ... inside BookingsService ...
+
+  async findOne(id: string) {
+    const booking = await this.bookingRepo.findOne({
+      where: { id },
+      relations: ['guest', 'room'], // <--- JOIN tables to get details
+    });
+
+    if (!booking) {
+      throw new NotFoundException(`Booking with ID ${id} not found`);
+    }
+
+    return booking;
+  }
 }

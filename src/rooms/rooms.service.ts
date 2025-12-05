@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Room } from './entities/room.entity'; // Adjust path if needed
+import { Room, RoomStatus } from './entities/room.entity';
 import { CreateRoomDto } from './dto/create-room.dto';
 
 @Injectable()
@@ -18,11 +18,7 @@ export class RoomsService {
   }
 
   // 2. SEED rooms (Hackathon Special)
-  // Takes an array of rooms and saves them all at once.
   async seed(createRoomDtos: CreateRoomDto[]) {
-    // Optional: Clear existing rooms to avoid duplicates during testing
-    // await this.roomsRepository.clear();
-
     const rooms = this.roomsRepository.create(createRoomDtos);
     return await this.roomsRepository.save(rooms);
   }
@@ -37,7 +33,8 @@ export class RoomsService {
   // 4. Get Available Rooms (For Guest Booking Wizard)
   async findAvailable() {
     return await this.roomsRepository.find({
-      where: { status: 'AVAILABLE' } as any, // Type casting if Enum check is strict
+      // 👇 2. Use the Enum value instead of "as any"
+      where: { status: RoomStatus.AVAILABLE },
     });
   }
 

@@ -151,32 +151,64 @@ export class AiService {
    * 4. IoT Data Analysis (For Admin Dashboard)
    * Finds patterns in raw sensor data.
    */
-  async analyzeIoTData(sensorData: any[]) {
+  // async analyzeIoTData(sensorData: any[]) {
+  //   try {
+  //     const prompt = `
+  //       You are a Hotel Facilities AI. Analyze this JSON array of sensor readings from 20 rooms.
+
+  //       Data: ${JSON.stringify(sensorData)}
+
+  //       Task:
+  //       1. Identify the room with abnormal water or electricity usage.
+  //       2. Explain the physical implications (e.g., "Burst Pipe", "Heater malfunction").
+
+  //       Return STRICT JSON:
+  //       {
+  //          "anomalyDetected": boolean,
+  //          "roomNumber": string,
+  //          "severity": "HIGH" | "LOW",
+  //          "description": string (Technical explanation),
+  //          "recommendedAction": string (e.g., "Turn off main valve")
+  //       }
+  //     `;
+
+  //     // Use PRO model for complex reasoning
+  //     const result = await this.model.generateContent(prompt);
+  //     return this.cleanJson(result.response.text());
+  //   } catch (error) {
+  //     return { anomalyDetected: false };
+  //   }
+  // }
+
+  // ... inside AiService ...
+
+  async analyzeIoTData(sensorPayload: any) {
     try {
       const prompt = `
-        You are a Hotel Facilities AI. Analyze this JSON array of sensor readings from 20 rooms.
+        You are a Hotel Facilities AI. Analyze this sensor data for a hotel room.
         
-        Data: ${JSON.stringify(sensorData)}
+        Metric: ${sensorPayload.metric}
+        Data: ${JSON.stringify(sensorPayload.data)}
         
         Task:
-        1. Identify the room with abnormal water or electricity usage.
-        2. Explain the physical implications (e.g., "Burst Pipe", "Heater malfunction").
+        1. Identify the specific hour of the anomaly.
+        2. Explain the physical cause based on the metric (e.g., "Burst Pipe" for Water, "Electrical Fire" or "Heater malfunction" for Temperature).
+        3. Assess severity.
         
         Return STRICT JSON:
         {
            "anomalyDetected": boolean,
-           "roomNumber": string,
-           "severity": "HIGH" | "LOW",
-           "description": string (Technical explanation),
-           "recommendedAction": string (e.g., "Turn off main valve")
+           "time": string,
+           "severity": "HIGH" | "MEDIUM",
+           "description": string,
+           "recommendation": string
         }
       `;
 
-      // Use PRO model for complex reasoning
       const result = await this.model.generateContent(prompt);
       return this.cleanJson(result.response.text());
     } catch (error) {
-      return { anomalyDetected: false };
+      return { anomalyDetected: false, description: 'Analysis unavailable' };
     }
   }
 }

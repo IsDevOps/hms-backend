@@ -61,7 +61,6 @@ export class BookingsController {
     return this.bookingsService.findAll();
   }
 
-
   @Post('seed')
   @ApiOperation({ summary: 'Bulk Create Bookings from Helper JSON' })
   @ApiBody({
@@ -83,5 +82,14 @@ export class BookingsController {
   })
   seed(@Body() seedData: any[]) {
     return this.bookingsService.seed(seedData);
+  }
+
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get a single booking by ID (with Guest & Room details)',
+  })
+  findOne(@Param('id') id: string) {
+    return this.bookingsService.findOne(id);
   }
 }
