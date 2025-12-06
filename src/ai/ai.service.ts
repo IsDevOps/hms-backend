@@ -354,29 +354,77 @@ export class AiService {
   //   }
   // }
 
-  async chatWithConcierge(message: string, context: string = 'GENERAL') {
+  // async chatWithConcierge(message: string, context: string = 'GENERAL') {
+  //   try {
+  //     const prompt = `
+  //       You are a Hotel Concierge AI. 
+  //       User Context: The user is currently looking at the "${context}" section.
+  //       User Message: "${message}".
+        
+  //       Available Services & Menu (Strictly recommend from this list):
+  //       - FOOD: Gourmet Burger (Wagyu beef with truffle aioli, $18), Truffle Pasta (Hand-made, $22), Garden Salad ($12), Ice Cold Coke ($3).
+  //       - HOUSEKEEPING: Extra Towels, Clean Room, Pillows, Toiletries.
+  //       - MAINTENANCE: Repair AC, Fix Plumbing, General Repair.
+  //       - CONCIERGE: Wake-up call, Spa Booking, Restaurant Reservation.
+        
+  //       Task:
+  //       1. Based on the user's message, suggest the most relevant items from the menu above.
+  //       2. If the user intent is general chat, be helpful and brief.
+  //       3. Return STRICT JSON.
+        
+  //       JSON Format:
+  //       {
+  //         "reply": "String (Friendly, short response)",
+  //         "suggestions": [
+  //           { "name": "Exact Item Name", "description": "Short desc", "price": Number (optional), "type": "FOOD" | "TOWELS" | "CLEANING" | "MAINTENANCE" | "CONCIERGE" }
+  //         ]
+  //       }
+  //     `;
+
+  //     const result = await this.model.generateContent(prompt);
+  //     const text = result.response.text();
+  //     return this.cleanJson(text);
+  //   } catch (error) {
+  //     return {
+  //       reply:
+  //         "I'm having trouble connecting to the concierge services right now. Please try selecting an item from the menu.",
+  //       suggestions: [],
+  //     };
+  //   }
+  // }
+
+    async chatWithConcierge(message: string, context: string = 'GENERAL') {
     try {
       const prompt = `
-        You are a Hotel Concierge AI. 
+        You are a Hotel Concierge AI at a luxury hotel in Lagos, Nigeria. 
         User Context: The user is currently looking at the "${context}" section.
         User Message: "${message}".
         
-        Available Services & Menu (Strictly recommend from this list):
-        - FOOD: Gourmet Burger (Wagyu beef with truffle aioli, $18), Truffle Pasta (Hand-made, $22), Garden Salad ($12), Ice Cold Coke ($3).
-        - HOUSEKEEPING: Extra Towels, Clean Room, Pillows, Toiletries.
+        Available Services & Menu (Prices in Naira ₦):
+        - FOOD: 
+           * Jollof Rice Special (₦18,500) - Smoky party jollof with grilled chicken and dodo.
+           * Pounded Yam & Egusi (₦22,000) - Smooth pounded yam with rich melon seed soup and assorted meat.
+           * Beef Suya Platter (₦12,500) - Spicy grilled beef skewers with yaji spice, onions, and tomatoes.
+           * Catfish Pepper Soup (₦25,000) - Spicy aromatic broth with fresh point-and-kill catfish.
+           * Eba & Okra Soup (₦16,000) - Fresh okra soup with fish and beef.
+           * Chapman (₦5,000) - Signature Nigerian cocktail.
+           * Bottle of Water (₦1,500).
+        
+        - HOUSEKEEPING: Extra Towels, Clean Room, Pillows, Toiletries (Free).
         - MAINTENANCE: Repair AC, Fix Plumbing, General Repair.
         - CONCIERGE: Wake-up call, Spa Booking, Restaurant Reservation.
         
         Task:
         1. Based on the user's message, suggest the most relevant items from the menu above.
-        2. If the user intent is general chat, be helpful and brief.
-        3. Return STRICT JSON.
+        2. If they say they are "hungry", prioritize Jollof Rice or Suya.
+        3. Write a friendly, short reply.
+        4. IMPORTANT: Return the price as a NUMBER in the JSON (do not include the ₦ symbol in the number field).
         
-        JSON Format:
+        Return STRICT JSON:
         {
           "reply": "String (Friendly, short response)",
           "suggestions": [
-            { "name": "Exact Item Name", "description": "Short desc", "price": Number (optional), "type": "FOOD" | "TOWELS" | "CLEANING" | "MAINTENANCE" | "CONCIERGE" }
+            { "name": "Exact Item Name", "description": "Short desc", "price": Number, "type": "FOOD" | "TOWELS" | "CLEANING" | "MAINTENANCE" | "CONCIERGE" }
           ]
         }
       `;
@@ -384,12 +432,12 @@ export class AiService {
       const result = await this.model.generateContent(prompt);
       const text = result.response.text();
       return this.cleanJson(text);
+
     } catch (error) {
-      return {
-        reply:
-          "I'm having trouble connecting to the concierge services right now. Please try selecting an item from the menu.",
-        suggestions: [],
+      return { 
+        reply: "I'm having trouble connecting to the kitchen. Please check the main menu.", 
+        suggestions: [] 
       };
     }
-  }
+    }
 }
