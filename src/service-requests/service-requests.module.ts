@@ -10,9 +10,7 @@ import { AiModule } from 'src/ai/ai.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      ServiceRequest, Booking
-    ]),
+    TypeOrmModule.forFeature([ServiceRequest, Booking]),
     EventsModule,
     AiModule,
   ],

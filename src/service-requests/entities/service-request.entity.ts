@@ -9,7 +9,8 @@ import { Booking } from '../../bookings/entities/booking.entity';
 
 export enum ServiceType {
   FOOD = 'FOOD', // Burgers, Pasta (Room Service)
-  CLEANING = 'CLEANING', // "Clean my room"
+  HOUSEKEEPING = 'HOUSEKEEPING', // "Clean my room"
+  CLEANING = 'CLEANING', // "Extra cleaning"
   TOWELS = 'TOWELS', // "Need 2 towels"
   MAINTENANCE = 'MAINTENANCE', // "AC is broken"
   CONCIERGE = 'CONCIERGE', // Free text: "Book a taxi", "Wake up call"

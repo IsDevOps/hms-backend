@@ -1,19 +1,58 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { Booking, BookingStatus } from '../bookings/entities/booking.entity';
 import { Room, RoomStatus } from '../rooms/entities/room.entity';
 import { AiService } from '../ai/ai.service';
+import { RequestStatus, ServiceRequest } from 'src/service-requests/entities/service-request.entity';
 
 @Injectable()
 export class AdminService {
   constructor(
     @InjectRepository(Booking) private bookingRepo: Repository<Booking>,
     @InjectRepository(Room) private roomRepo: Repository<Room>,
+    @InjectRepository(ServiceRequest)
+    private serviceRequestRepo: Repository<ServiceRequest>, // <--- Inject Repo
+
     private aiService: AiService,
   ) {}
 
-  // 1. REAL STATS (For the top cards)
+  // // 1. REAL STATS (For the top cards)
+  // async getDashboardStats() {
+  //   const totalRooms = await this.roomRepo.count();
+  //   const occupiedRooms = await this.roomRepo.count({
+  //     where: { status: RoomStatus.OCCUPIED },
+  //   });
+  //   const activeBookings = await this.bookingRepo.count({
+  //     where: { status: BookingStatus.CHECKED_IN },
+  //   });
+
+  //   // Calculate Revenue (Sum of all confirmed bookings)
+  //   const revenueQuery = await this.bookingRepo
+  //     .createQueryBuilder('booking')
+  //     .leftJoinAndSelect('booking.room', 'room')
+  //     .where('booking.status = :status', { status: BookingStatus.CONFIRMED })
+  //     .getMany();
+
+  //   const totalRevenue = revenueQuery.reduce(
+  //     (sum, b) => sum + Number(b.room.price),
+  //     0,
+  //   );
+
+  //   // active alerts
+  //   const activeAlerts = await this.roomRepo.count({
+  //     where: { status: RoomStatus.MAINTENANCE },
+  //   });
+
+  //   return {
+  //     occupancyRate: Math.round((occupiedRooms / totalRooms) * 100) || 0,
+  //     activeGuests: activeBookings,
+  //     totalRevenue: totalRevenue,
+  //     activeAlerts,
+  //     totalRooms,
+  //   };
+  // }
+
   async getDashboardStats() {
     const totalRooms = await this.roomRepo.count();
     const occupiedRooms = await this.roomRepo.count({
@@ -35,17 +74,19 @@ export class AdminService {
       0,
     );
 
-    // active alerts
-    const activeAlerts = await this.roomRepo.count({
-      where: { status: RoomStatus.MAINTENANCE },
+    // 👇 NEW: Count Pending Requests (Anything NOT Completed or Cancelled)
+    const pendingRequests = await this.serviceRequestRepo.count({
+      where: {
+        status: Not(In([RequestStatus.COMPLETED, RequestStatus.CANCELLED])),
+      },
     });
 
     return {
       occupancyRate: Math.round((occupiedRooms / totalRooms) * 100) || 0,
       activeGuests: activeBookings,
       totalRevenue: totalRevenue,
-      activeAlerts,
       totalRooms,
+      pendingRequests,
     };
   }
 
